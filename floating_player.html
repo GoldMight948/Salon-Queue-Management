@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
+  body {
+    background: transparent;
+    overflow: hidden;
+    padding: 2px;
+  }
+  .player-pill {
+    width: 360px;
+    height: 64px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, rgba(82, 45, 38, 0.96) 0%, rgba(138, 56, 42, 0.96) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    padding: 0 14px 0 8px;
+    gap: 12px;
+    color: white;
+  }
+  .disc-container {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+  .vinyl-disc {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-color: #222;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), 0 4px 10px rgba(0,0,0,0.5);
+    animation: rotateDisc 10s linear infinite;
+    animation-play-state: paused;
+    position: relative;
+    overflow: hidden;
+  }
+  .vinyl-disc.playing {
+    animation-play-state: running;
+  }
+  .vinyl-disc::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px; height: 14px;
+    background: #181414;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.8);
+    z-index: 2;
+  }
+  .vinyl-disc::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 4px rgba(0,0,0,0.35), inset 0 0 0 8px rgba(255,255,255,0.06);
+    pointer-events: none;
+  }
+  @keyframes rotateDisc {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .track-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .track-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .track-artist {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.65);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    margin-bottom: 5px;
+  }
+  .progress-wrapper {
+    width: 100%;
+    height: 8px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .progress-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 3px;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: #ffffff;
+    border-radius: 3px;
+    width: 0%;
+  }
+  .progress-dot {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    transform: translate(-50%, -50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 4px rgba(0,0,0,0.6);
+    pointer-events: none;
+  }
+  .time-display {
+    font-size: 0.64rem;
+    color: rgba(255, 255, 255, 0.65);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn-nav {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    transition: transform 0.1s, color 0.1s;
+  }
+  .btn-nav:hover {
+    color: #ffffff;
+    transform: scale(1.15);
+  }
+  .btn-nav:active {
+    transform: scale(0.95);
+  }
+  .btn-play {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #1a1a1a;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .btn-play:hover {
+    transform: scale(1.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  }
+  .btn-play:active {
+    transform: scale(0.94);
+  }
+  #yt-hidden-container {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+    left: -9999px;
+  }
+</style>
+</head>
+<body>
+<div class="player-pill">
+  <div class="disc-container">
+    <div id="vinyl-disc" class="vinyl-disc"></div>
+  </div>
+  <div class="track-info">
+    <div id="track-title" class="track-title">Loading...</div>
+    <div id="track-artist" class="track-artist">Saloon Radio</div>
+    <div id="progress-wrapper" class="progress-wrapper">
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+        <div id="progress-dot" class="progress-dot"></div>
+      </div>
+    </div>
+    <div id="time-display" class="time-display">0:00 / 0:00</div>
+  </div>
+  <div class="controls">
+    <button id="btn-prev" class="btn-nav" title="Previous Track">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+    </button>
+    <button id="btn-play" class="btn-play" title="Play / Pause">
+      <svg id="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="icon-pause" style="display:none;" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    </button>
+    <button id="btn-next" class="btn-nav" title="Next Track">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+    </button>
+  </div>
+</div>
+<div id="yt-hidden-container"><div id="yt-player"></div></div>
+
+<script>
+const songs = [{"title": "Mujhse Mohabbat Ka Izhaar Karta", "artist": "Satrang Music Official", "cover": "https://saloon.wtf/covers/N0jnLZxYwYc.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/54/20/6c/54206c16-fcb5-52d5-aa90-aa5971aca547/mzaf_7625739938615947657.plus.aac.p.m4a", "youtubeId": "N0jnLZxYwYc"}, {"title": "Tumsa Koi Pyaara", "artist": "Kumar Sanu & Alka Yagnik", "cover": "https://saloon.wtf/covers/3NWMK2MRqIk.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/80/35/70/80357075-bd79-ded2-ab99-c396af3391ac/mzaf_4333304355958539395.plus.aac.p.m4a", "youtubeId": "3NWMK2MRqIk"}, {"title": "Woh Meri Neend Mera Chain", "artist": "Sadhana Sargam", "cover": "https://saloon.wtf/covers/bga_0ziOOfQ.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/39/5d/52/395d52fc-aeea-2c14-23f3-f94f22eed71e/mzaf_16253346636082787201.plus.aac.p.m4a", "youtubeId": "bga_0ziOOfQ"}, {"title": "Saaton Janam Main Tere", "artist": "Kumar Sanu & Alka Yagnik", "cover": "https://saloon.wtf/covers/oFxbBeYhLqM.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/9d/73/ce/9d73cecc-9953-0472-2317-590158296547/mzaf_18093045961836809640.plus.aac.p.m4a", "youtubeId": "oFxbBeYhLqM"}, {"title": "Oye Raju Pyar Na Kariyo (Santoor Music)", "artist": "Melody Vibe", "cover": "https://saloon.wtf/covers/nNhv8A_rJTg.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/b9/26/3b/b9263b5d-8fe4-3096-b41b-255923f40c06/mzaf_10966383143037224499.plus.aac.p.m4a", "youtubeId": "nNhv8A_rJTg"}, {"title": "Jeeta Tha Jiske Liye", "artist": "Kumar Sanu, Alka Yagnik & Ajay Devgan", "cover": "https://saloon.wtf/covers/CTuvMubzXpU.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/70/0d/84/700d8477-ab29-a787-4539-6cd7d3bc7a91/mzaf_15937842752442424909.plus.aac.p.m4a", "youtubeId": "CTuvMubzXpU"}, {"title": "Dard Karaara", "artist": "Kumar Sanu & Sadhana Sargam", "cover": "https://saloon.wtf/covers/i1IsLVz6T9Q.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/07/6d/92/076d9276-24a1-d07c-855a-a82582442dd3/mzaf_1815668704901841696.plus.aac.p.m4a", "youtubeId": "i1IsLVz6T9Q"}, {"title": "Tumse Milne Ko Dil", "artist": "Alka Yagnik & Kumar Sanu", "cover": "https://saloon.wtf/covers/5y_TCKNzAMI.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4a/ad/8f/4aad8f13-1399-7c74-8ebb-8ce7ba490a42/mzaf_14306723271323573586.plus.aac.p.m4a", "youtubeId": "5y_TCKNzAMI"}, {"title": "Raah Mein Unse Mulaqat", "artist": "Kumar Sanu & Alka Yagnik", "cover": "https://saloon.wtf/covers/dDR4oiyjUBA.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/63/28/c6/6328c69d-3a62-4fca-61d9-a97e38bf6aed/mzaf_12945624202456289029.plus.aac.p.m4a", "youtubeId": "dDR4oiyjUBA"}, {"title": "Main Duniya Bhula Doonga", "artist": "Anuradha Paudwal & Kumar Sanu", "cover": "https://saloon.wtf/covers/otQmzlm-s7Q.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/4d/9d/b7/4d9db7cd-cbe5-5dc8-4ba9-55c325a4fa8f/mzaf_14851298341457382785.plus.aac.p.m4a", "youtubeId": "otQmzlm-s7Q"}, {"title": "Tumhein Apna Banane Ki Kasam Khai Hai", "artist": "Anuradha Paudwal & Kumar Sanu", "cover": "https://saloon.wtf/covers/tPNwGuu_rQ4.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/51/0a/98/510a983d-a402-66c4-136c-2b304fa68cfe/mzaf_2287154225862961039.plus.aac.p.m4a", "youtubeId": "tPNwGuu_rQ4"}, {"title": "Maine Pyar Tumhi Se Kiya Hai", "artist": "Anuradha Paudwal & Kumar Sanu", "cover": "https://saloon.wtf/covers/-N-k56i7M2k.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/07/ed/b4/07edb40a-9395-e0b8-a1f9-a7a215e493a4/mzaf_7219922869083417570.plus.aac.p.m4a", "youtubeId": "-N-k56i7M2k"}, {"title": "Kitna Haseen Chehra", "artist": "Kumar Sanu", "cover": "https://saloon.wtf/covers/qGOTe3KmCdY.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/cb/dc/ee/cbdceeab-4046-4ca5-6621-26a69bd37b79/mzaf_9206539366538814756.plus.aac.p.m4a", "youtubeId": "qGOTe3KmCdY"}, {"title": "Tujhko Na Dekhu Toh", "artist": "Udit Narayan", "cover": "https://saloon.wtf/covers/cGKBs7rokos.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/84/d7/5d/84d75dd9-6331-d6a0-f264-74ade1d09855/mzaf_10135694266285533665.plus.aac.p.m4a", "youtubeId": "cGKBs7rokos"}, {"title": "Sab Kuchh Bhula Diya", "artist": "Sonu Nigam & Sapna Awasthi", "cover": "https://saloon.wtf/covers/xKx_80QM2LU.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/f3/76/b7/f376b7a9-3576-348e-4c4d-04aac3ead46d/mzaf_4998221749405838043.plus.aac.p.m4a", "youtubeId": "xKx_80QM2LU"}, {"title": "Dheere Dheere Pyar Ko Badhana Hai", "artist": "Nitesh kachhap", "cover": "https://saloon.wtf/covers/zuPoUsdXrqM.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/ce/46/8d/ce468d87-e58d-55f8-1270-294d405be898/mzaf_8649443337924870481.plus.aac.p.m4a", "youtubeId": "zuPoUsdXrqM"}, {"title": "Hum Lakh Chupaye Pyar Magar", "artist": "Vik4s M", "cover": "https://saloon.wtf/covers/wuLJtA0uJro.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/8f/62/be/8f62be1f-7684-c340-e054-85b55075f2aa/mzaf_16542441626860551239.plus.aac.p.m4a", "youtubeId": "wuLJtA0uJro"}, {"title": "Nahin Yeh Ho Nahin Sakta", "artist": "Kumar Sanu & Sadhana Sargam", "cover": "https://saloon.wtf/covers/RjJxWRFfG3s.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a8/64/d9/a864d905-df31-7b61-02ca-aec78b605162/mzaf_18199949510745198055.plus.aac.p.m4a", "youtubeId": "RjJxWRFfG3s"}, {"title": "Kahin Mujhe Pyar Hua Toh Nahin", "artist": "Alka Yagnik & Kumar Sanu", "cover": "https://saloon.wtf/covers/2nypvYilIkA.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/04/ce/41/04ce41a2-b798-0775-afb9-fbd574b06338/mzaf_1224046170515486774.plus.aac.p.m4a", "youtubeId": "2nypvYilIkA"}, {"title": "Tera Naam Liya Tujhe Yaad Kiya", "artist": "Alka Yagnik", "cover": "https://saloon.wtf/covers/_p0QrO4Mq9Q.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/79/5b/ff/795bffbe-9c80-d4bf-1306-8d1603f5f957/mzaf_6747053165902051503.plus.aac.p.m4a", "youtubeId": "_p0QrO4Mq9Q"}, {"title": "Hum Pyaar Hai Tumhare", "artist": "Kumar Sanu & Alka Yagnik", "cover": "https://saloon.wtf/covers/4ImdbyqnH8w.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/7d/4d/83/7d4d837a-d512-302f-6c04-5d7be97f234f/mzaf_13824101917256574814.plus.aac.p.m4a", "youtubeId": "4ImdbyqnH8w"}, {"title": "Ek Ladki Ko Dekha", "artist": "Kumar Sanu", "cover": "https://saloon.wtf/covers/htMvfOfixuM.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/ca/4e/84/ca4e84e0-d0fd-9672-5099-4ddb9ef00c02/mzaf_2296327157345011511.plus.aac.p.m4a", "youtubeId": "htMvfOfixuM"}, {"title": "Tere Dar Par Sanam (Male Version)", "artist": "Kumar Sanu", "cover": "https://saloon.wtf/covers/5dWbn_qER3s.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/69/60/4e/69604e43-5557-d1af-7323-dc5ce4430543/mzaf_5936031028776922853.plus.aac.p.m4a", "youtubeId": "5dWbn_qER3s"}, {"title": "Tu Meri Zindagi Hai", "artist": "Anuradha Paudwal & Kumar Sanu", "cover": "https://saloon.wtf/covers/oEg_iXEWlt4.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/f6/69/58/f66958e7-36bd-d2bb-a2e5-f36e068fe001/mzaf_16073788428072295329.plus.aac.p.m4a", "youtubeId": "oEg_iXEWlt4"}, {"title": "Tere Dard Se Dil", "artist": "Kumar Sanu", "cover": "https://saloon.wtf/covers/TgHYW8ubFko.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/c8/97/eb/c897ebd7-b36d-b771-660c-a4cce97890e7/mzaf_17063682760306367929.plus.aac.p.m4a", "youtubeId": "TgHYW8ubFko"}, {"title": "Hum Yaar Hai Tumhare", "artist": "Udit Narayan & Alka Yagnik", "cover": "https://saloon.wtf/covers/uIOrAkrjwp4.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/bc/89/8b/bc898b1f-3842-b8d1-5032-75ee34ebee92/mzaf_17939234266625939981.plus.aac.p.m4a", "youtubeId": "uIOrAkrjwp4"}, {"title": "Aitbaar Nahi Karna", "artist": "Abhijeet & Sadhana Sargam", "cover": "https://saloon.wtf/covers/HoMSu1iw0Zw.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/0f/cf/5e/0fcf5e86-f77a-61ea-7b6f-9ff4e5097c90/mzaf_18193214376132006376.plus.aac.p.m4a", "youtubeId": "HoMSu1iw0Zw"}, {"title": "Dekha Hai Pehli Baar", "artist": "Alka Yagnik & S.P. Balasubrahmanyam", "cover": "https://saloon.wtf/covers/WAgJ8KM5AVQ.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3d/76/bc/3d76bcf5-1dc6-3995-54a8-b6f75fb0622c/mzaf_9124678979021517177.plus.aac.p.m4a", "youtubeId": "WAgJ8KM5AVQ"}, {"title": "Dekhne Waalon Ne (Remix)", "artist": "Alka Yagnik & Udit Narayan", "cover": "https://saloon.wtf/covers/_dUAVM5ERXA.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview125/v4/8b/48/50/8b48508b-2e2f-79d3-218a-39e3b2614018/mzaf_10154127612085878851.plus.aac.p.m4a", "youtubeId": "_dUAVM5ERXA"}, {"title": "Tum To Thehre Pardesi", "artist": "Altaf Raja", "cover": "https://saloon.wtf/covers/lRBIcaSV-Ns.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/08/a2/73/08a273a3-6cd2-b948-3853-18ff06fda147/mzaf_1273562355890417617.plus.aac.p.m4a", "youtubeId": "lRBIcaSV-Ns"}, {"title": "Chehra Kya Dekhte Ho", "artist": "Asha Bhosle & Kumar Sanu", "cover": "https://saloon.wtf/covers/9v2bq2JHt4I.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/dc/20/29/dc202995-6335-a30d-c22b-346ef519aae1/mzaf_2224938081786109738.plus.aac.p.m4a", "youtubeId": "9v2bq2JHt4I"}, {"title": "Is Tarah Aashiqui Ka (Kumar Sanu Version)", "artist": "Kumar Sanu", "cover": "https://saloon.wtf/covers/Y-o8NQ8Y36A.jpg", "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/a5/a4/a5/a5a4a50f-5d22-b575-10de-5c5c2a5d24ee/mzaf_12503261490178933025.plus.aac.p.m4a", "youtubeId": "Y-o8NQ8Y36A"}];
+let currentIndex = 0;
+let isPlaying = false;
+let ytPlayer = null;
+let ytReady = false;
+let audioFallback = new Audio();
+let timerInterval = null;
+
+const titleEl = document.getElementById('track-title');
+const artistEl = document.getElementById('track-artist');
+const discEl = document.getElementById('vinyl-disc');
+const fillEl = document.getElementById('progress-fill');
+const dotEl = document.getElementById('progress-dot');
+const timeEl = document.getElementById('time-display');
+const btnPlay = document.getElementById('btn-play');
+const btnPrev = document.getElementById('btn-prev');
+const btnNext = document.getElementById('btn-next');
+const iconPlay = document.getElementById('icon-play');
+const iconPause = document.getElementById('icon-pause');
+const progressWrapper = document.getElementById('progress-wrapper');
+
+function fmtTime(sec) {
+  if (isNaN(sec) || sec < 0) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function setPlayingState(playing) {
+  isPlaying = playing;
+  if (playing) {
+    discEl.classList.add('playing');
+    iconPlay.style.display = 'none';
+    iconPause.style.display = 'block';
+  } else {
+    discEl.classList.remove('playing');
+    iconPlay.style.display = 'block';
+    iconPause.style.display = 'none';
+  }
+}
+
+function updateSongUI(index) {
+  const s = songs[index];
+  titleEl.innerText = s.title;
+  artistEl.innerText = s.artist;
+  discEl.style.backgroundImage = `url('${s.cover}')`;
+  fillEl.style.width = '0%';
+  dotEl.style.left = '0%';
+  timeEl.innerText = '0:00 / 0:00';
+}
+
+function loadSong(index, autoStart = true) {
+  currentIndex = (index + songs.length) % songs.length;
+  const s = songs[currentIndex];
+  updateSongUI(currentIndex);
+
+  if (ytPlayer && ytReady) {
+    ytPlayer.loadVideoById(s.youtubeId);
+    if (autoStart) {
+      ytPlayer.playVideo();
+      setPlayingState(true);
+    }
+  } else if (s.previewUrl) {
+    audioFallback.src = s.previewUrl;
+    if (autoStart) {
+      audioFallback.play().then(() => setPlayingState(true)).catch(() => {});
+    }
+  }
+}
+
+// YouTube Iframe API setup
+const tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+window.onYouTubeIframeAPIReady = function() {
+  ytPlayer = new YT.Player('yt-player', {
+    height: '200',
+    width: '200',
+    videoId: songs[0].youtubeId,
+    playerVars: {
+      autoplay: 1,
+      controls: 0,
+      disablekb: 1,
+      playsinline: 1,
+      rel: 0,
+      modestbranding: 1
+    },
+    events: {
+      onReady: function(e) {
+        ytReady = true;
+        updateSongUI(0);
+        // Autoplay attempt
+        e.target.playVideo();
+        setPlayingState(true);
+      },
+      onStateChange: function(e) {
+        if (e.data === YT.PlayerState.PLAYING) {
+          setPlayingState(true);
+        } else if (e.data === YT.PlayerState.PAUSED) {
+          setPlayingState(false);
+        } else if (e.data === YT.PlayerState.ENDED) {
+          loadSong(currentIndex + 1, true);
+        }
+      },
+      onError: function() {
+        // Fallback to preview audio if YouTube has embedding restriction
+        const s = songs[currentIndex];
+        if (s.previewUrl) {
+          audioFallback.src = s.previewUrl;
+          audioFallback.play().then(() => setPlayingState(true)).catch(() => {});
+        }
+      }
+    }
+  });
+};
+
+// Progress updater
+timerInterval = setInterval(() => {
+  if (!isPlaying) return;
+  let cur = 0, dur = 0;
+  if (ytPlayer && ytReady && ytPlayer.getCurrentTime) {
+    cur = ytPlayer.getCurrentTime() || 0;
+    dur = ytPlayer.getDuration() || 0;
+  } else if (audioFallback && !audioFallback.paused) {
+    cur = audioFallback.currentTime || 0;
+    dur = audioFallback.duration || 0;
+  }
+  if (dur > 0) {
+    const pct = Math.min(100, Math.max(0, (cur / dur) * 100));
+    fillEl.style.width = pct + '%';
+    dotEl.style.left = pct + '%';
+    timeEl.innerText = `${fmtTime(cur)} / ${fmtTime(dur)}`;
+  }
+}, 300);
+
+btnPlay.addEventListener('click', () => {
+  if (isPlaying) {
+    if (ytPlayer && ytReady) ytPlayer.pauseVideo();
+    audioFallback.pause();
+    setPlayingState(false);
+  } else {
+    if (ytPlayer && ytReady) {
+      ytPlayer.playVideo();
+    } else if (songs[currentIndex].previewUrl) {
+      audioFallback.src = songs[currentIndex].previewUrl;
+      audioFallback.play();
+    }
+    setPlayingState(true);
+  }
+});
+
+btnNext.addEventListener('click', () => {
+  loadSong(currentIndex + 1, true);
+});
+
+btnPrev.addEventListener('click', () => {
+  loadSong(currentIndex - 1, true);
+});
+
+progressWrapper.addEventListener('click', (e) => {
+  const rect = progressWrapper.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const pct = Math.max(0, Math.min(1, clickX / rect.width));
+  let dur = 0;
+  if (ytPlayer && ytReady && ytPlayer.getDuration) {
+    dur = ytPlayer.getDuration();
+    if (dur > 0) ytPlayer.seekTo(dur * pct, true);
+  } else if (audioFallback && audioFallback.duration) {
+    dur = audioFallback.duration;
+    if (dur > 0) audioFallback.currentTime = dur * pct;
+  }
+});
+
+// Autoplay unlocker on first user interaction
+window.addEventListener('click', () => {
+  if (!isPlaying && ytPlayer && ytReady) {
+    ytPlayer.playVideo();
+    setPlayingState(true);
+  }
+}, { once: true });
+
+// Initial UI render
+updateSongUI(0);
+</script>
+</body>
+</html>
