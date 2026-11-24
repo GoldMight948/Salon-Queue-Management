@@ -1,6 +1,6 @@
 # Salon Queue Management System
 
-**Live demo:** https://salon-queue-streamlit.streamlit.app  
+**Live demo:** https://kishore-dada-amdavadi.streamlit.app/
 **Hosted on:** Streamlit Community Cloud  
 **Test Staff Access:** All workspaces available via the sidebar navigation (Overview, Join Queue, Reception, Barber Desk, Live Display, Admin Settings, Track Token)
 
